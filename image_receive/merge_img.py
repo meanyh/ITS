@@ -4,7 +4,7 @@ from PIL import Image, ImageFile
 import os
 import re
 import serial
-import time
+import time, datetime
 import json
 import io
 import shutil
@@ -27,21 +27,23 @@ def clear(path):
 
 def clean_one_img(byte_array):
     delete_list = [b"Receive: ", b"656E64", b"\r\n", b"Sent", b"end", b".jpg"]
-    # print(byte_array)
-    first = byte_array.index(b"IMG-")
-    last = byte_array.index(b":", first)
-    name = byte_array[first:last].decode()
-    byte_array = byte_array[:first] + byte_array[last+1:]
-    while 1:
-        if b"Size: " in byte_array:
-            first = byte_array.index(b"Size")
-            last = byte_array.index(b"\r\n", first)
-            byte_array = byte_array[:first] + byte_array[last:]
-        else:
-            break
-    for word in delete_list:
-        byte_array = byte_array.replace(word, b"")
-    return bytearray(byte_array), name
+    try:
+        first = byte_array.index(b"IMG-")
+        last = byte_array.index(b":", first)
+        name = byte_array[first:last].decode()
+        byte_array = byte_array[:first] + byte_array[last+1:]
+        while 1:
+            if b"Size: " in byte_array:
+                first = byte_array.index(b"Size")
+                last = byte_array.index(b"\r\n", first)
+                byte_array = byte_array[:first] + byte_array[last:]
+            else:
+                break
+        for word in delete_list:
+            byte_array = byte_array.replace(word, b"")
+        return bytearray(byte_array), name
+    except Exception as e:
+            print('Failed to clean. Reason: %s' % e)
 
 def save_img(image_data):
     split_path = dest_path + "split/"
@@ -107,11 +109,12 @@ def read_description(ser, read):
             read += tmp
             if b"Sent" in read:
                 ser.write(b"get Data")
-                global img_name, height, width
+                global img_name, height, width, time
                 read = read[len("Description: ") - 1:read.index(b"Size: ")]
                 img_name = read.split(b", ")[0].decode()
                 height = int(read.split(b", ")[1].decode())
                 width = int(read.split(b", ")[2].decode())
+                time = str(read.split(b", ")[3].decode())
                 break
 
 def recieve_part(ser):
@@ -139,7 +142,13 @@ def recieve_part(ser):
                 read = b"" 
     if end:
         merge_img()
+        read_time()
 
+def read_time():
+    now = datetime.datetime.utcnow()
+    print(time)
+    print(now)
+    print(now - datetime.datetime.strptime(time, '%Y-%m-%d %H:%M:%S.%f'))
 
 def main():
     with open('./config.json','r') as f:

@@ -71,14 +71,14 @@ def main():
     dest_path = config['DEST_PATH']
 
     image = Image.open(source + img_name)
-
+    time = datetime.datetime.utcnow()
     k = splitImage(dest_path, image, crop_h, crop_w)
     n = int(k)-1
     
     im_w, im_h = image.size
     
-    desciption = b"Description: " + bytearray(img_name, 'utf8') + b", " + b"%d" % im_h + b", " + b"%d" % im_w
-    
+    desciption = b"Description: " + bytearray(img_name, 'utf8') + b", " + b"%d" % im_h + b", " + b"%d" % im_w + b", " + bytearray(str(time), 'utf8')
+        
     ser = serial.Serial(port[0], 115200)
     print(len(desciption))
     ser.write(b"%d" % len(desciption))

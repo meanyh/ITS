@@ -11,8 +11,8 @@ import shutil
 import math
 
 dest_path = ""
-crop_h = 32
-crop_w = 56
+crop_h = 18
+crop_w = 32
 end = False
 
 
@@ -90,6 +90,7 @@ def merge_img():
     path = dest_path + "split/"
     k = 0
     for file in sorted(os.listdir( path ), key=lambda x: (int(re.sub('\D','',x)),x)):
+        print(file)
         while str(k) not in file:
             image = Image.new('RGB', (crop_w, crop_h))
             files.append(image)
@@ -133,12 +134,12 @@ def recieve_part(ser):
                 read = b""
                 break
             if b"Sent\r\n" in read:
-                ser.write(b"get Data")
+                # ser.write(b"get Data")
                 receive += read
                 if b"656E64\r\n" in read or b"end" in read:
                     end = True
                 if b".jpg" in read:
-                    ser.write(b"end Data")
+                    # ser.write(b"end Data")
                     check_img(receive)
                     receive = b""
                     break

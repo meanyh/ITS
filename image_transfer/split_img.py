@@ -49,8 +49,7 @@ def send_img(dest_path, ser, i, last):
     print("SerName: %s" % ser.name)
 
     ser.write(byte_array)
-    ser.flush()
-    print(ser.out_waiting)
+    # ser.flush()
 
 
 def sent_description(ser, img_name, im_w, im_h, time):
@@ -88,7 +87,6 @@ def main():
     for i in range(n):
         if i == n-1:
             last = True
-        print(i)
         # ser1 = serial.Serial(port[0], 115200)
         # ser2 = serial.Serial(port[1], 115200)
         # ser3 = serial.Serial(port[2], 115200)
@@ -97,9 +95,9 @@ def main():
         # while ser1.out_waiting and ser2.out_waiting and ser3.out_waiting and ser4.out_waiting:
             print(ser1.out_waiting, ser2.out_waiting)
             continue
-        if ser2.out_waiting <= 0:
+        if ser2.out_waiting <= 0 and i%2 == 0:
             send_img(dest_path, ser1, i, last)
-        if ser2.out_waiting <= 0:
+        elif ser2.out_waiting <= 0 and i%2 == 1:
             send_img(dest_path, ser2, i, last)
         # elif not ser3.out_waiting:
         #     send_img(ser3, i)

@@ -77,7 +77,22 @@ def main():
     
     im_w, im_h = image.size
     
+    desciption = b"Description: " + bytearray(img_name, 'utf8') + b", " + b"%d" % im_h + b", " + b"%d" % im_w
+    
     ser = serial.Serial(port[0], 115200)
+    print(len(desciption))
+    ser.write(b"%d" % len(desciption))
+    ser.flush()
+    ser.write(desciption)
+    ser.flush()
+    print(desciption)
+    rec = b""
+    while 1:
+        if (ser.in_waiting):
+            rec += ser.read(ser.in_waiting)
+            if b"Done" in rec:
+                print(rec)
+                break
     last = False
     for i in range(n):
         if i == n-1:

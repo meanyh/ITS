@@ -1,16 +1,33 @@
 import subprocess as sp
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFile
 import os
 import re
 import serial
 import time
 import json
 import io
+import shutil
+import math
+
+dest_path = ""
+crop_h = 18
+crop_w = 32
+
+def clear(path):
+    for filename in os.listdir(path):
+        file_path = os.path.join(path, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 def clean_one_img(byte_array):
     delete_list = [b"Receive: ", b"656E64", b"\r\n", b"Sent", b"end", b".jpg"]
-    print(byte_array)
+    # print(byte_array)
     first = byte_array.index(b"IMG-")
     last = byte_array.index(b":", first)
     name = byte_array[first:last].decode()
@@ -27,13 +44,15 @@ def clean_one_img(byte_array):
     return bytearray(byte_array), name
 
 def save_img(image_data):
-    split_path = "img/split/"
+    split_path = dest_path + "split/"
     image_data, imgname = clean_one_img(image_data)
+    ImageFile.LOAD_TRUNCATED_IMAGES = True
     try:
         image = Image.open(io.BytesIO(image_data))
         image.save(split_path + imgname + ".jpg")
-    except:
-        print("Cannot Open Image")
+        print("Save Image %s" % imgname)
+    except Exception as e:
+        print("Cannot Open Image %s: %s" % (imgname, e))
 
 def check_img(image_data):
     if image_data.count(b"IMG-") > 1:
@@ -47,14 +66,53 @@ def readimage(path):
     with open(path, "rb") as f:
         return bytearray(f.read())
 
-def merge_img(image_data):
-    split_path = "img/"
-    image_data, imgname = clean_one_img(image_data)
-    try:
-        image = Image.open(io.BytesIO(image_data))
-        image.save(split_path + imgname + ".jpg")
-    except:
-        print("Cannot Open Image")
+def pil_grid(images):
+    rows = math.ceil(height / crop_h)
+    columns = math.ceil(width / crop_w)
+    full = []
+    k = 0
+    full = Image.new( 'RGB', (  width, height ) )
+    for j in range( 0, rows * crop_h, crop_h ):
+        if (k >= len(images)):
+            break
+        for i in range( 0, columns * crop_w, crop_w ):
+            # paste the image at location i,j:
+            if (k >= len(images)):
+                break
+            full.paste( images[k], (i,j) )
+            # Select next image and text
+            k = k + 1
+    full.save(dest_path + img_name)
+
+def merge_img():
+    files = []
+    path = dest_path + "split/"
+    k = 0
+    for file in sorted(os.listdir( path ), key=lambda x: (int(re.sub('\D','',x)),x)):
+        while str(k) not in file:
+            image = Image.new('RGB', (crop_w, crop_h))
+            files.append(image)
+            k+=1
+        bytes = readimage(path+file)
+        image = Image.open(io.BytesIO(bytes))
+        files.append(image)
+        k+=1
+    pil_grid(files)
+    clear(path)
+
+def read_description(ser, read):
+    while True:
+        if ser.in_waiting:
+            tmp = ser.read()
+            read += tmp
+            if b"Sent" in read:
+                ser.write(b"get Data")
+                global img_name, height, width
+                read = read[len("Description: ") - 1:read.index(b"Size: ")]
+                img_name = read.split(b", ")[0].decode()
+                height = int(read.split(b", ")[1].decode())
+                width = int(read.split(b", ")[2].decode())
+                break
 
 def recieve_part(ser):
     receive = b""
@@ -65,6 +123,9 @@ def recieve_part(ser):
         if ser.in_waiting:
             tmp = ser.read()
             read += tmp
+            if b"Description: " in read:
+                read_description(ser, read)
+                read = b""
             if b"Sent" in read:
                 ser.write(b"get Data")
                 receive += read
@@ -76,22 +137,20 @@ def recieve_part(ser):
                     end = True
                     break
                 read = b"" 
+    if end:
+        merge_img()
+
 
 def main():
     with open('./config.json','r') as f:
         config = json.load(f)
 
     port = config['PORT']
-    imgname = config['IMAGE_NAME']
+    global dest_path
+    dest_path = config["DEST_PATH"]
     
     ser = serial.Serial(port[0],115200)
     recieve_part(ser)
-    # with open(recFile,"w+") as txt:
-    #     txt.write(receive)
-    
-    # toImg(cleanned(receive),imgname)
-	
-    
 
 if __name__ == "__main__":
 	main()

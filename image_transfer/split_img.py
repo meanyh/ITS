@@ -21,19 +21,19 @@ def clear(path):
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
-def splitImage(path, im, h, w):
+def split_image(path, im):
     im_w, im_h = im.size
     count = 0
     clear(path)
-    for i in range(0, im_h, h):
-        for j in range(0, im_w, w):
-            box = (j, i, j + w, i + h)
+    for i in range(0, im_h, crop_h):
+        for j in range(0, im_w, crop_w):
+            box = (j, i, j + crop_w, i + crop_h)
             crop_img = im.crop(box)
             crop_img.save(os.path.join(path, "IMG-%s.jpg" % count))
             count += 1
     return count
 
-def sendImg(dest_path, ser, i, last):
+def send_img(dest_path, ser, i, last):
     f = open(dest_path + "IMG-%s.jpg" % i, 'rb')
     image = f.read()
     f.close()
@@ -71,7 +71,7 @@ def main():
 
     image = Image.open(source + img_name)
 
-    k = splitImage(dest_path, image, crop_h, crop_w)
+    k = split_image(dest_path, image)
     n = int(k)-1
     
     
@@ -88,13 +88,13 @@ def main():
             # print(ser1.in_waiting, ser2.in_waiting)
             continue
         if not ser1.out_waiting:
-            sendImg(dest_path, ser1, i, last)
+            send_img(dest_path, ser1, i, last)
         elif not ser2.out_waiting:
-            sendImg(dest_path, ser2, i, last)
+            send_img(dest_path, ser2, i, last)
         # elif not ser3.in_waiting:
-        #     sendImg(ser3, i)
+        #     send_img(ser3, i)
         # elif not ser4.in_waiting:
-        #     sendImg(ser4, i)
+        #     send_img(ser4, i)
 
             # if time1 == 0:
             #     time1 = datetime.datetime.utcnow()

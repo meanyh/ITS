@@ -86,8 +86,12 @@ def main():
     n = int(k)-1
     
     im_w, im_h = image.size
+    desciption = b"Description: " + bytearray(img_name) + b", " + b"%d" % im_h + b", " + b"%d" % im_w
+    
     
     ser = serial.Serial(port[0], 115200)
+
+    ser.write(desciption)
     last = False
     for i in range(n):
         if i == n-1:

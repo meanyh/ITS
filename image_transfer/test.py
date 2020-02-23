@@ -35,15 +35,13 @@ def pil_grid(images):
             k = k + 1
     full.save("img/IMG-4k.jpg")
 
-# path = "img/split/"
-# files = []
-# for file in sorted(os.listdir( path ), key=lambda x: (int(re.sub('\D','',x)),x)):
-#     # print(file)
-#     bytes = readimage(path+file)
-#     # print(bytes)
-#     image = Image.open(io.BytesIO(bytes))
-#     files.append(image)
-# pil_grid(files)
+path = "img/split/"
+files = []
+for file in sorted(os.listdir( path ), key=lambda x: (int(re.sub('\D','',x)),x)):
+    bytes = readimage(path+file)
+    image = Image.open(io.BytesIO(bytes))
+    files.append(image)
+pil_grid(files)
 
 now = str(datetime.datetime.utcnow())
 time.sleep(5)

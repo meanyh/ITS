@@ -9,6 +9,7 @@ import json
 import io
 import shutil
 import math
+from threading import Thread
 
 dest_path = ""
 crop_h = 18
@@ -131,15 +132,15 @@ def read_description(ser, read):
                 height = int(read.split(b", ")[1].decode())
                 width = int(read.split(b", ")[2].decode())
                 sent_time = str(read.split(b", ")[3].decode())
-                # ser.reset_input_buffer
                 break
 
-def recieve_part(ser):
+def recieve_part(ser, ser_inused):
     receive = b""
     read = b""
     tmp = b""
     global end
     global count_all
+    ser_inused.set(True)
     print(ser.name)
     while True:
         if ser.in_waiting > 0:
@@ -151,12 +152,11 @@ def recieve_part(ser):
                 count_all = 0
                 break
             if b"Sent\r\n" in read:
-                print(read)
+                # print(read)
                 receive += read
                 if b"656E64\r\n" in read or b"end" in read:
                     end = True
                 if b".jpg" in read:
-                    print("\n")
                     check_img(receive)
                     receive = b""
                     break
@@ -167,12 +167,18 @@ def recieve_part(ser):
         end = False
         print(count_all)
         count_all = 0
+    ser_inused.set(False)
 
 def read_time():
     now = datetime.datetime.utcnow()
     print(sent_time)
     print(now)
     print(now - datetime.datetime.strptime(sent_time, '%Y-%m-%d %H:%M:%S.%f'))
+
+class check_ser:
+    def __init__(self, obj): self.obj = obj
+    def get(self):    return self.obj
+    def set(self, obj):      self.obj = obj
 
 def main():
     with open('./config.json','r') as f:
@@ -182,37 +188,28 @@ def main():
     global dest_path, time_out, count_all
     time_out = time.time()
     dest_path = config["DEST_PATH"]
+
+    ser1_inused = check_ser(False)
+    ser2_inused = check_ser(False)
+    ser3_inused = check_ser(False)
+    ser4_inused = check_ser(False)
     
-    prin = True
     ser1 = serial.Serial(port[0], 115200, timeout = 2)
-    # ser2 = serial.Serial(port[1], 115200, timeout = 2)
-    # ser3 = serial.Serial(port[2], 115200, timeout = 2)
-    # ser4 = serial.Serial(port[3], 115200, timeout = 2)
+    ser2 = serial.Serial(port[1], 115200, timeout = 2)
+    ser3 = serial.Serial(port[2], 115200, timeout = 2)
+    ser4 = serial.Serial(port[3], 115200, timeout = 2)
     # ser5 = serial.Serial(port[4], 115200, timeout = 2)
     while 1:
-        time_now = time.time()
-        if ser1.in_waiting > 0:
-            recieve_part(ser1)
-            time_out = time.time()
-        # if ser2.in_waiting > 0:
-        #     recieve_part(ser2)
-        #     time_out = time.time()
-        # if ser3.in_waiting > 0:
-        #     recieve_part(ser3)
-        #     time_out = time.time()
-        # if ser4.in_waiting > 0:
-        #     recieve_part(ser4)
-        #     time_out = time.time()
+        if ser1.in_waiting > 0 and not(ser1_inused.get()):
+            Thread(target = recieve_part, args=(ser1,ser1_inused,)).start()
+        if ser2.in_waiting > 0 and not(ser2_inused.get()):
+            Thread(target = recieve_part, args=(ser2,ser2_inused,)).start()
+        if ser3.in_waiting > 0 and not(ser3_inused.get()):
+            Thread(target = recieve_part, args=(ser3,ser3_inused,)).start()
+        if ser4.in_waiting > 0 and not(ser4_inused.get()):
+            Thread(target = recieve_part, args=(ser4,ser4_inused,)).start()
         # if ser5.in_waiting > 0:
-        #     recieve_part(ser5)
-        #     time_out = time.time()
-        # if time_now - time_out > 5 and prin:
-        #     print(time_now - time_out)
-        #     merge_img()
-        #     read_time()
-        #     print(count_all)
-        #     count_all = 0
-        #     prin = False
+        #     Thread(target = recieve_part, args=(ser5,)).start()
 
 if __name__ == "__main__":
 	main()

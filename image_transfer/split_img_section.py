@@ -10,6 +10,7 @@ import datetime
 crop_h = 18
 crop_w = 32
 count_all = 0
+max_frame = 250
 
 def clear(path):
     for filename in os.listdir(path):
@@ -44,30 +45,55 @@ def send_img(dest_path, ser, i, last):
     if last:
        byte_array += b"end"
     n = len(byte_array)
-    ser.write(b"%d" % n)
-    print(n)
     
     print("IMG-%s.jpg" % i)
+    print("Size: %d" % n)
     print("SerName: %s" % ser.name)
 
-    ser.write(byte_array)
-    print(byte_array)
-    ser.flush()
+    tmp = byte_array[:max_frame]
+    print(len(tmp))
+    ser.write(b"%d" % len(tmp))
+    print(tmp)
+    ser.write(tmp)
     rec = b""
+    j = 1
+    end = False
     while 1:
         if (ser.in_waiting):
             rec += ser.read()
             if b"Done" in rec:
-                print(rec)
-                break
+                rec = b""
+                if end:
+                    break
+                if j < n//max_frame:
+                    tmp = byte_array[j*max_frame:(j+1)*max_frame]
+                    print(len(tmp))
+                    ser.write(b"%d" % len(tmp))
+                    print(tmp)
+                    ser.write(tmp)
+                else:
+                    end = True
+                    if n % max_frame == 0:
+                        break
+                    tmp = byte_array[j*max_frame:]
+                    print(len(tmp))
+                    ser.write(b"%d" % len(tmp))
+                    print(tmp)
+                    ser.write(tmp)
+                j += 1
 
 def sent_description(ser, img_name, im_w, im_h, time):
     desciption = b"Description: " + bytearray(img_name, 'utf8') + b", " + b"%d" % im_h + b", " + b"%d" % im_w + b", " + bytearray(str(time), 'utf8')
     n = len(desciption)
     ser.write(b"%d" % n)
-    # time.sleep(0.5)
     ser.write(desciption)
     print(desciption)
+    rec = b""
+    while 1:
+        if (ser.in_waiting):
+            rec += ser.read()
+            if b"Done" in rec:
+                break
 
 def main():
     f = open('./config.json', 'r')
@@ -86,27 +112,18 @@ def main():
     im_w, im_h = image.size
     
     ser1 = serial.Serial(port[0], 115200)
-    # ser2 = serial.Serial(port[1], 115200)
-    # ser3 = serial.Serial(port[2], 115200)
-    # ser4 = serial.Serial(port[3], 115200)
     
     sent_description(ser1, img_name, im_w, im_h, time)
-        
+
     last = False
     for i in range(n):
         if i == n-1:
             last = True
         while ser1.out_waiting > 0:
-        # while ser1.out_waiting and ser2.out_waiting and ser3.out_waiting and ser4.out_waiting:
+            print(ser1.out_waiting)
             continue
-        if ser1.out_waiting <= 0 :
+        if ser1.out_waiting <= 0:
             send_img(dest_path, ser1, i, last)
-        # elif ser2.out_waiting <= 0 and i%2 == 1:
-        #     send_img(dest_path, ser2, i, last)
-        # elif not ser3.out_waiting:
-        #     send_img(ser3, i)
-        # elif not ser4.out_waiting:
-        #     send_img(ser4, i)
     print(count_all)
 
 if __name__ == "__main__":

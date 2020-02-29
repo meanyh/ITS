@@ -6,10 +6,12 @@ import time
 import json
 import sys
 import datetime
+from threading import Thread
 
 crop_h = 18
 crop_w = 32
 count_all = 0
+max_frame = 250
 
 def clear(path):
     for filename in os.listdir(path):
@@ -34,7 +36,8 @@ def split_image(path, im, h, w):
             count += 1
     return count
 
-def send_img(dest_path, ser, i, last):
+def send_img(dest_path, ser, ser_inused, i, last):
+    ser_inused.set(True)
     f = open(dest_path + "IMG-%s.jpg" % i, 'rb')
     image = f.read()
     f.close()
@@ -44,30 +47,65 @@ def send_img(dest_path, ser, i, last):
     if last:
        byte_array += b"end"
     n = len(byte_array)
-    ser.write(b"%d" % n)
-    print(n)
     
     print("IMG-%s.jpg" % i)
+    print("Size: %d" % n)
     print("SerName: %s" % ser.name)
 
-    ser.write(byte_array)
-    print(byte_array)
-    ser.flush()
+    tmp = byte_array[:max_frame]
+    print("IMG-%s.jpg" % i)
+    print(len(tmp))
+    ser.write(b"%d" % len(tmp))
+    # print(tmp)
+    ser.write(tmp)
     rec = b""
+    j = 1
+    end = False
     while 1:
         if (ser.in_waiting):
             rec += ser.read()
             if b"Done" in rec:
-                print(rec)
-                break
+                rec = b""
+                if end:
+                    break
+                if j < n//max_frame:
+                    tmp = byte_array[j*max_frame:(j+1)*max_frame]
+                    print("IMG-%s.jpg" % i)
+                    print(len(tmp))
+                    ser.write(b"%d" % len(tmp))
+                    # print(tmp)
+                    ser.write(tmp)
+                else:
+                    end = True
+                    if n % max_frame == 0:
+                        break
+                    tmp = byte_array[j*max_frame:]
+                    print("IMG-%s.jpg" % i)
+                    print(len(tmp))
+                    ser.write(b"%d" % len(tmp))
+                    # print(tmp)
+                    ser.write(tmp)
+                j += 1
+    ser_inused.set(False)
 
 def sent_description(ser, img_name, im_w, im_h, time):
     desciption = b"Description: " + bytearray(img_name, 'utf8') + b", " + b"%d" % im_h + b", " + b"%d" % im_w + b", " + bytearray(str(time), 'utf8')
     n = len(desciption)
     ser.write(b"%d" % n)
-    # time.sleep(0.5)
     ser.write(desciption)
     print(desciption)
+    rec = b""
+    while 1:
+        if (ser.in_waiting):
+            rec += ser.read()
+            if b"Done" in rec:
+                break
+
+class check_ser:
+    def __init__(self, obj): self.obj = obj
+    def get(self):    return self.obj
+    def set(self, obj):      self.obj = obj
+
 
 def main():
     f = open('./config.json', 'r')
@@ -86,9 +124,12 @@ def main():
     im_w, im_h = image.size
     
     ser1 = serial.Serial(port[0], 115200)
-    # ser2 = serial.Serial(port[1], 115200)
-    # ser3 = serial.Serial(port[2], 115200)
-    # ser4 = serial.Serial(port[3], 115200)
+    ser2 = serial.Serial(port[1], 115200)
+    ser3 = serial.Serial(port[2], 115200)
+
+    ser1_inused = check_ser(False)
+    ser2_inused = check_ser(False)
+    ser3_inused = check_ser(False)
     
     sent_description(ser1, img_name, im_w, im_h, time)
         
@@ -96,17 +137,15 @@ def main():
     for i in range(n):
         if i == n-1:
             last = True
-        while ser1.out_waiting > 0:
-        # while ser1.out_waiting and ser2.out_waiting and ser3.out_waiting and ser4.out_waiting:
+        while ser1_inused.get() and ser2_inused.get() and ser3_inused.get():
             continue
-        if ser1.out_waiting <= 0 :
-            send_img(dest_path, ser1, i, last)
-        # elif ser2.out_waiting <= 0 and i%2 == 1:
-        #     send_img(dest_path, ser2, i, last)
-        # elif not ser3.out_waiting:
-        #     send_img(ser3, i)
-        # elif not ser4.out_waiting:
-        #     send_img(ser4, i)
+
+        if ser1.out_waiting <= 0 and not(ser1_inused.get()):
+            Thread(target = send_img, args=(dest_path,ser1,ser1_inused, i, last,)).start()
+        elif ser2.out_waiting <= 0 and not(ser2_inused.get()):
+            Thread(target = send_img, args=(dest_path,ser2,ser2_inused, i, last,)).start()
+        elif ser3.out_waiting <= 0 and not(ser3_inused.get()):
+            Thread(target = send_img, args=(dest_path,ser3,ser3_inused, i, last,)).start()
     print(count_all)
 
 if __name__ == "__main__":

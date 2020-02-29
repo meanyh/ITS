@@ -3,7 +3,8 @@
         "/dev/ttyACM0",
         "/dev/ttyACM1",
         "/dev/ttyACM2",
-        "/dev/ttyACM3"
+        "/dev/ttyACM3",
+        "/dev/ttyACM4"
     ],
     "IMAGE_NAME":"img_6k.jpg",
     "SOURCE_PATH":"img/",

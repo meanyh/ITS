@@ -51,15 +51,8 @@ def send_img(dest_path, ser, i, last):
     print("SerName: %s" % ser.name)
 
     ser.write(byte_array)
-    print(byte_array)
-    ser.flush()
-    rec = b""
-    while 1:
-        if (ser.in_waiting):
-            rec += ser.read()
-            if b"Done" in rec:
-                print(rec)
-                break
+    # ser.flush()
+
 
 def sent_description(ser, img_name, im_w, im_h, time):
     desciption = b"Description: " + bytearray(img_name, 'utf8') + b", " + b"%d" % im_h + b", " + b"%d" % im_w + b", " + bytearray(str(time), 'utf8')
@@ -86,9 +79,10 @@ def main():
     im_w, im_h = image.size
     
     ser1 = serial.Serial(port[0], 115200)
-    # ser2 = serial.Serial(port[1], 115200)
-    # ser3 = serial.Serial(port[2], 115200)
-    # ser4 = serial.Serial(port[3], 115200)
+    ser2 = serial.Serial(port[1], 115200)
+    ser3 = serial.Serial(port[2], 115200)
+    ser4 = serial.Serial(port[3], 115200)
+    ser5 = serial.Serial(port[4], 115200)
     
     sent_description(ser1, img_name, im_w, im_h, time)
         
@@ -96,17 +90,21 @@ def main():
     for i in range(n):
         if i == n-1:
             last = True
-        while ser1.out_waiting > 0:
+        while ser1.out_waiting > 0 and ser2.out_waiting > 0 and ser3.out_waiting > 0 and ser4.out_waiting > 0 and ser5.out_waiting > 0:
         # while ser1.out_waiting and ser2.out_waiting and ser3.out_waiting and ser4.out_waiting:
+            print(ser1.out_waiting, ser2.out_waiting)
             continue
-        if ser1.out_waiting <= 0 :
+        if ser1.out_waiting <= 0 and i%5 == 0:
             send_img(dest_path, ser1, i, last)
-        # elif ser2.out_waiting <= 0 and i%2 == 1:
-        #     send_img(dest_path, ser2, i, last)
-        # elif not ser3.out_waiting:
-        #     send_img(ser3, i)
-        # elif not ser4.out_waiting:
-        #     send_img(ser4, i)
+        elif ser2.out_waiting <= 0 and i%5 == 1:
+            send_img(dest_path, ser2, i, last)
+        elif ser3.out_waiting <= 0 and i%5 == 2:
+            send_img(dest_path, ser3, i, last)
+        elif ser4.out_waiting <= 0 and i%5 == 3:
+            send_img(dest_path, ser4, i, last)
+        elif ser5.out_waiting <= 0 and i%5 == 4:
+            send_img(dest_path, ser5, i, last)
+
     print(count_all)
 
 if __name__ == "__main__":

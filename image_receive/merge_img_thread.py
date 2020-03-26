@@ -12,7 +12,7 @@ import math
 from threading import Thread
 
 dest_path = ""
-crop_h = 18
+crop_h = 16
 crop_w = 32
 end = False
 count_all = 0

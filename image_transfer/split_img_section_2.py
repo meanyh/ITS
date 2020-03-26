@@ -8,7 +8,7 @@ import sys
 import datetime
 from threading import Thread
 
-crop_h = 18
+crop_h = 16
 crop_w = 32
 count_all = 0
 max_frame = 250

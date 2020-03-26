@@ -7,7 +7,7 @@ import json
 import sys
 import datetime
 
-crop_h = 18
+crop_h = 16
 crop_w = 32
 count_all = 0
 max_frame = 250
@@ -31,7 +31,7 @@ def split_image(path, im, h, w):
         for j in range(0, im_w, w):
             box = (j, i, j + w, i + h)
             crop_img = im.crop(box)
-            crop_img.save(os.path.join(path, "IMG-%s.jpg" % count))
+            crop_img.save(os.path.join(path, "IMG-%s.jpg" % count), optimize=True)
             count += 1
     return count
 

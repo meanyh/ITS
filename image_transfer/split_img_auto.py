@@ -32,7 +32,7 @@ def split_image(path, im, h, w):
         for j in range(0, im_w, w):
             box = (j, i, j + w, i + h)
             crop_img = im.crop(box)
-            crop_img.save(os.path.join(path, "IMG-%s.jpg" % count))
+            crop_img.save(os.path.join(path, "IMG-%s.jpg" % count), optimize=True)
             count += 1
     return count
 
@@ -116,33 +116,47 @@ def main():
     source = config['SOURCE_PATH']
     dest_path = config['DEST_PATH']
 
-    image = Image.open(source + img_name)
-    time = datetime.datetime.utcnow()
-    k = split_image(dest_path, image, crop_h, crop_w)
-    n = int(k)-1
-    global count_all
-    im_w, im_h = image.size
-    
-    ser1 = serial.Serial(port[0], 115200)
-    ser2 = serial.Serial(port[1], 115200)
+    for file in sorted(os.listdir( source )):
 
-    ser1_inused = check_ser(False)
-    ser2_inused = check_ser(False)
-    
-    sent_description(ser1, img_name, im_w, im_h, time)
+        image = Image.open(source + file)
+        time = datetime.datetime.utcnow()
+        k = split_image(dest_path, image, crop_h, crop_w)
+        n = int(k)-1
+        global count_all
+        im_w, im_h = image.size
         
-    last = False
-    for i in range(n):
-        if i == n-1:
-            last = True
-        while ser1_inused.get() and ser2_inused.get():
-            continue
+        ser1 = serial.Serial(port[0], 115200)
+        ser2 = serial.Serial(port[1], 115200)
+        ser3 = serial.Serial(port[2], 115200)
+        ser4 = serial.Serial(port[3], 115200)
+        ser5 = serial.Serial(port[4], 115200)
 
-        if ser1.out_waiting <= 0 and not(ser1_inused.get()):
-            Thread(target = send_img, args=(dest_path,ser1,ser1_inused, i, last,)).start()
-        elif ser2.out_waiting <= 0 and not(ser2_inused.get()):
-            Thread(target = send_img, args=(dest_path,ser2,ser2_inused, i, last,)).start()
-    print(count_all)
+        ser1_inused = check_ser(False)
+        ser2_inused = check_ser(False)
+        ser3_inused = check_ser(False)
+        ser4_inused = check_ser(False)
+        ser5_inused = check_ser(False)
+        
+        sent_description(ser1, img_name, im_w, im_h, time)
+            
+        last = False
+        for i in range(n):
+            if i == n-1:
+                last = True
+            while ser1_inused.get() and ser2_inused.get() and ser3_inused.get() and ser4_inused.get() and ser5_inused.get():
+                continue
+
+            if ser1.out_waiting <= 0 and not(ser1_inused.get()):
+                Thread(target = send_img, args=(dest_path,ser1,ser1_inused, i, last,)).start()
+            elif ser2.out_waiting <= 0 and not(ser2_inused.get()):
+                Thread(target = send_img, args=(dest_path,ser2,ser2_inused, i, last,)).start()
+            elif ser3.out_waiting <= 0 and not(ser3_inused.get()):
+                Thread(target = send_img, args=(dest_path,ser3,ser3_inused, i, last,)).start()
+            elif ser4.out_waiting <= 0 and not(ser4_inused.get()):
+                Thread(target = send_img, args=(dest_path,ser4,ser4_inused, i, last,)).start()
+            elif ser5.out_waiting <= 0 and not(ser5_inused.get()):
+                Thread(target = send_img, args=(dest_path,ser5,ser5_inused, i, last,)).start()
+        print(count_all)
 
 if __name__ == "__main__":
     main()

@@ -16,6 +16,7 @@ crop_h = 16
 crop_w = 32
 end = False
 count_all = 0
+count_pack = 0
 time_out = 0
 height = 0
 width = 0
@@ -40,6 +41,9 @@ def clean_one_img(byte_array):
     name = byte_array[first:last].decode()
     byte_array = byte_array[:first] + byte_array[last+1:]
     while 1:
+        if b".jpg" in byte_array:
+            first = byte_array.index(b".jpg")
+            byte_array = byte_array[:first]
         if b"Size: " in byte_array:
             first = byte_array.index(b"Size")
             last = byte_array.index(b"\r\n", first)
@@ -49,7 +53,6 @@ def clean_one_img(byte_array):
     for word in delete_list:
         byte_array = byte_array.replace(word, b"")
     count_all+=len(byte_array)
-    print(len(byte_array))
     return bytearray(byte_array), name
 
 def save_img(image_data):
@@ -74,7 +77,6 @@ def check_img(image_data):
         save_img(image_data[index:])
     elif image_data.count(b"IMG-") < 1:
         count_all+=len(image_data)
-        print(len(image_data))
         print("Cannot find IMG name")
         pass
     else:
@@ -139,7 +141,7 @@ def recieve_part(ser, ser_inused):
     read = b""
     tmp = b""
     global end
-    global count_all
+    global count_all, count_pack
     ser_inused.set(True)
     print(ser.name)
     while True:
@@ -154,6 +156,7 @@ def recieve_part(ser, ser_inused):
             if b"Sent\r\n" in read:
                 # print(read)
                 receive += read
+                count_pack += 1
                 if b"656E64\r\n" in read or b"end" in read:
                     end = True
                 if b".jpg" in read:
@@ -162,11 +165,12 @@ def recieve_part(ser, ser_inused):
                     break
                 read = b"" 
     if end:
+        end = False
         merge_img()
         read_time()
-        end = False
-        print(count_all)
+        print(count_all, count_pack)
         count_all = 0
+        count_pack = 0
     ser_inused.set(False)
 
 def read_time():
@@ -198,7 +202,7 @@ def main():
     ser2 = serial.Serial(port[1], 115200, timeout = 2)
     ser3 = serial.Serial(port[2], 115200, timeout = 2)
     ser4 = serial.Serial(port[3], 115200, timeout = 2)
-    # ser5 = serial.Serial(port[4], 115200, timeout = 2)
+    
     while 1:
         if ser1.in_waiting > 0 and not(ser1_inused.get()):
             Thread(target = recieve_part, args=(ser1,ser1_inused,)).start()
@@ -208,8 +212,6 @@ def main():
             Thread(target = recieve_part, args=(ser3,ser3_inused,)).start()
         if ser4.in_waiting > 0 and not(ser4_inused.get()):
             Thread(target = recieve_part, args=(ser4,ser4_inused,)).start()
-        # if ser5.in_waiting > 0:
-        #     Thread(target = recieve_part, args=(ser5,)).start()
 
 if __name__ == "__main__":
 	main()

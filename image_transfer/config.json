@@ -6,7 +6,7 @@
         "/dev/ttyACM3",
         "/dev/ttyACM4"
     ],
-    "IMAGE_NAME":"20kb.jpg",
+    "IMAGE_NAME":"5kb_4.jpg",
     "SOURCE_PATH":"img/",
     "DEST_PATH":"img/split/"
 }

@@ -16,13 +16,16 @@ max_frame = 250
 def clear(path):
     for filename in os.listdir(path):
         file_path = os.path.join(path, filename)
-        try:
-            if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)
-        except Exception as e:
-            print('Failed to delete %s. Reason: %s' % (file_path, e))
+        delete(file_path)
+
+def delete(file_path):
+    try:
+        if os.path.isfile(file_path) or os.path.islink(file_path):
+            os.unlink(file_path)
+        elif os.path.isdir(file_path):
+            shutil.rmtree(file_path)
+    except Exception as e:
+        print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 def split_image(path, im, h, w):
     im_w, im_h = im.size
@@ -117,8 +120,8 @@ def main():
     dest_path = config['DEST_PATH']
 
     for file in sorted(os.listdir( source )):
-
-        image = Image.open(source + file)
+        img_path = source + file
+        image = Image.open(img_path)
         time = datetime.datetime.utcnow()
         k = split_image(dest_path, image, crop_h, crop_w)
         n = int(k)-1
@@ -157,6 +160,7 @@ def main():
             elif ser5.out_waiting <= 0 and not(ser5_inused.get()):
                 Thread(target = send_img, args=(dest_path,ser5,ser5_inused, i, last,)).start()
         print(count_all)
+        delete(img_path)
 
 if __name__ == "__main__":
     main()
